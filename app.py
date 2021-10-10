@@ -6,16 +6,36 @@ import matplotlib.pyplot as plt
 import sklearn
 from sklearn.decomposition import TruncatedSVD
 app = Flask(__name__)
-
-
+collaborative_dict = dict()
+content_dict= dict()
+sametype_dict= dict()
+samebrand_dict= dict()
+import pickle
 @app.route('/')
 def hello():
     q = request.args['q']
     q=int(q)
-    print(type(q))
-    # return q
+    with open('user.pkl', 'rb') as handle:
+        collaborative_dict = pickle.load(handle)
+    with open('user_content.pkl', 'rb') as handle:
+        content_dict = pickle.load(handle)
+    ans=0
+    content_based=0
+    if q in collaborative_dict.keys():
+        ans= collaborative_dict[q]
+        print("inside if")
+    if q in content_dict.keys():
+        content_based= content_dict[q]
+    print(ans,content_based)
+    print(type(ans))
+    if type(ans) is list and type(content_based) is list:
+        print("hehe\n\n\n\n\n")
+        return jsonify({'collaborative':ans,"similar_product_content_based": content_based})
+    
+
+
     data=pd.read_csv("C://Users//arjun//Desktop//hackathon//hack.csv")
-    print(data[data["product_id"]==463570586]["brand"])
+    # print(data[data["product_id"]==463570586]["brand"])
     group= pd.read_csv("C://Users//arjun//Desktop//hackathon//content_utility_data")
     print("group data found")
     content_df= pd.read_csv("C://Users//arjun//Desktop//hackathon//newcontentresult")
@@ -41,7 +61,7 @@ def hello():
     
     amazon_ratings1 = temp.head(10000)
     ratings_utility_matrix = amazon_ratings1.pivot_table(values='Rating', index='UserId', columns='ProductId', fill_value=0)    #slowest step
-    print(ratings_utility_matrix)
+    # print(ratings_utility_matrix)
     X = ratings_utility_matrix.T
     X1 = X
     SVD = TruncatedSVD(n_components=10)
@@ -57,11 +77,11 @@ def hello():
 
 # Removes the item already bought by the customer
     Recommend.remove(i) 
-    print(Recommend)
+    # print(Recommend)
     result=Recommend[0:9]
     ans=[]
-    print("before i for loop")
-    print(temp)
+    # print("before i for loop")
+    # print(temp)
     for i in result:
         if isinstance(data[data["product_id"]==i]["brand"].iloc[0],float):
             ans.append([i,temp[temp["ProductId"]==i]["category_code"].iloc[0],temp[temp["ProductId"]==i]["Price"].iloc[0],"New Brand"])
@@ -70,7 +90,7 @@ def hello():
     print("after i for loop")
     similar_brand_products=[]
     similar_product_content_based=[]
-    print(temp.head())
+    # print(temp.head())
     for i in sim_brand_product_id:
         if isinstance(data[data["product_id"]==i]["brand"].iloc[0],float):
             similar_brand_products.append([i,temp[temp["ProductId"]==i]["category_code"].iloc[0],temp[temp["ProductId"]==i]["Price"].iloc[0],"New Brand"])
@@ -79,43 +99,35 @@ def hello():
     
     
     for i in sim_product_product_id:
-        if isinstance(data[data["product_id"]==1004585]["brand"].iloc[0],float):
+        if isinstance(data[data["product_id"]==i]["brand"].iloc[0],float):
             similar_product_content_based.append([i,temp[temp["ProductId"]==i]["category_code"].iloc[0],temp[temp["ProductId"]==i]["Price"].iloc[0],"New Brand"])
         else:
             similar_product_content_based.append([i,temp[temp["ProductId"]==i]["category_code"].iloc[0],temp[temp["ProductId"]==i]["Price"].iloc[0],data[data["product_id"]==i]["brand"].iloc[0]])
-            
+    
+    collaborative_dict[q]= ans
+    content_dict[q]=  similar_product_content_based
+    with open('user.pkl', 'wb') as handle:
+        pickle.dump(collaborative_dict, handle)
+    
+    with open('user_content.pkl', 'wb') as handle:
+        pickle.dump(content_dict, handle)
 
-    print(ans)
-    # flag=0
-    # for i in range(len(ans)):
-    #     flag=0
-    #     for j in ans[i]:
-    #         if isinstance(j,float):
-    #             flag=1
-    #             print(j)
-    #             break
-    #         if flag==0:
-    #             newans.append(ans[i])
-    
 
-    print(ans)
-    # for i in range(len(similar_brand_products)):
-    #     if None not in similar_brand_products[i]:
-    #         newans.append(similar_brand_products[i])
-    # similar_brand_products=newans
-    # newans=[]
-    # for i in range(len(similar_brand_products)):
-    #     if None not in similar_product_content_based[i]:
-    #         newans.append(similar_product_content_based[i])
-    
-    
-    return jsonify({'collaborative':ans,'similar_brand':similar_brand_products,"similar_product_content_based": similar_product_content_based})
+    return jsonify({'collaborative':ans,"similar_product_content_based": similar_product_content_based})
 
 @app.route('/samebrand/')
 def samebrand():
     q = request.args['q']
     q=int(q)
     print(type(q))
+    with open('samebrand.pkl', 'rb') as handle:
+        print("opened file")
+        samebrand_dict = pickle.load(handle)
+    if q in samebrand_dict.keys():
+        val= samebrand_dict[q]
+        print("hehe")
+        return jsonify({"result": val})
+    
     data= pd.read_csv("C://Users//arjun//Desktop//hackathon//hack.csv")
     mybrand= data[data["product_id"]==q]["brand"].iloc[0]
     res= data[data["brand"]==mybrand][["category_code"]]
@@ -124,21 +136,19 @@ def samebrand():
     val=[]
     for i in range(5):
         val.append([res.iloc[i][0],int(ids.iloc[i][0]),int(prices.iloc[i][0]),mybrand])
-    print(ids)
-    # for i in ids:
-    #     print(i)
-    print(res)
-    print(res.iloc[1])
+    # print(ids)
+    # print(res)
+    # print(res.iloc[1])
     ans=[]
     newans=[]
-    print(res.values)
+    # print(res.values)
     n=len(res)
-    # for i in range(5):
-    #     temp=list([res.iloc[i],temp10[0]])
-    #     # 
-        
-    #     ans.append(temp)
-    print(ans)  
+
+    # print(ans)  
+    print("about to save")
+    samebrand_dict[q]= val
+    with open('samebrand.pkl', 'wb') as handle:
+        pickle.dump(samebrand_dict, handle)
 
     return jsonify({"result": val})
 
@@ -146,7 +156,15 @@ def samebrand():
 def sametype():
     q = request.args['q']
     q=int(q)
+    
     print(type(q))
+    with open('sametype.pkl', 'rb') as handle:
+        print("opened file")
+        sametype_dict = pickle.load(handle)
+    if q in sametype_dict.keys():
+        val= sametype_dict[q]
+        print("hehe")
+        return jsonify({"result": val})
     data= pd.read_csv("C://Users//arjun//Desktop//hackathon//hack.csv")
     mytype= data[data["product_id"]==q]["category_code"].iloc[0]
     res= data[data["category_code"]==mytype][["brand"]]
@@ -160,18 +178,21 @@ def sametype():
         n=len(ids)
     for i in range(n):
         val.append([res.iloc[i][0],int(ids.iloc[i][0]),int(prices.iloc[i][0]),mytype])
-    print(ids)
+    # print(ids)
     # for i in ids:
     #     print(i)
-    print(res)
-    print(res.values)
+    # print(res)
+    # print(res.values)
     
     # for i in range(5):
     #     temp=list([res.iloc[i],temp10[0]])
     #     # 
         
     #     ans.append(temp)
-
+    print("about to save")
+    sametype_dict[q]= val
+    with open('sametype.pkl', 'wb') as handle:
+        pickle.dump(sametype_dict, handle)
 
     return jsonify({"result": val})
 if __name__ == '__main__':
